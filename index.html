@@ -8,6 +8,8 @@
     <link rel="manifest" href="manifest.json">
     <!-- 引入 Lottie 库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <!-- 引入 idb 库（用于 IndexedDB） -->
+    <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.min.js"></script>
     <style>
         /* ===== 全局重置 & 主题 ===== */
         * {
@@ -55,6 +57,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
         .app-header h1 {
@@ -78,8 +82,9 @@
 
         .header-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
+            flex-wrap: wrap;
         }
         .header-actions .text-btn {
             background: transparent;
@@ -105,6 +110,45 @@
             transform: scale(0.96);
         }
 
+        .undo-redo-btn {
+            font-size: 18px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--text-secondary);
+            line-height: 1.4;
+            position: relative;
+            font-family: inherit;
+        }
+        .undo-redo-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .undo-redo-btn:not(:disabled):hover {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        .undo-redo-btn .badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* ===== 统计条 ===== */
         .stats-bar {
             display: flex;
@@ -113,6 +157,7 @@
             font-size: 13px;
             color: var(--text-secondary);
             flex-wrap: wrap;
+            align-items: center;
         }
         .stats-bar strong {
             color: var(--text);
@@ -125,6 +170,16 @@
             border-radius: 50%;
             background: var(--primary-light);
             margin-right: 4px;
+        }
+        .stats-bar .backup-info {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: default;
+        }
+        .stats-bar .backup-info .highlight {
+            color: var(--primary);
+            font-weight: 500;
         }
 
         /* ===== 搜索框 ===== */
@@ -652,6 +707,10 @@
                 font-size: 12px;
                 padding: 3px 8px;
             }
+            .undo-redo-btn {
+                font-size: 15px;
+                padding: 3px 8px;
+            }
         }
 
         /* ===== 工具类 ===== */
@@ -681,11 +740,15 @@
             z-index: 200;
             white-space: nowrap;
             max-width: 90%;
+            cursor: pointer;
         }
         .toast.show {
             opacity: 1;
             visibility: visible;
             transform: translateX(-50%) translateY(0);
+        }
+        .toast.warning {
+            background: #dc2626;
         }
 
         /* ===== 启动画面 ===== */
@@ -716,7 +779,6 @@
             gap: 8px;
         }
 
-        /* 主标题：从下往上滑入 + 淡入 */
         .splash-title {
             font-size: 32px;
             font-weight: 700;
@@ -731,7 +793,6 @@
             100% { opacity: 1; transform: translateY(0); }
         }
 
-        /* 副标题：紧随其后 */
         .splash-subtitle {
             font-size: 16px;
             font-weight: 400;
@@ -752,7 +813,6 @@
     <!-- ===== 启动画面 ===== -->
     <div class="splash-screen" id="splashScreen">
         <div class="splash-content">
-            <!-- Lottie 动画容器 -->
             <div id="lottie-logo" style="width:120px; height:120px; margin-bottom:4px;"></div>
             <div class="splash-title">今日学习</div>
             <div class="splash-subtitle">树先生小记</div>
@@ -763,6 +823,12 @@
     <header class="app-header">
         <h1>📝 面试题宝典 <span id="countBadge">0</span></h1>
         <div class="header-actions">
+            <button class="undo-redo-btn" id="undoBtn" title="撤销 (Ctrl+Z)" disabled>
+                ↩️ <span class="badge" id="undoCount">0</span>
+            </button>
+            <button class="undo-redo-btn" id="redoBtn" title="重做 (Ctrl+Y)" disabled>
+                ↪️ <span class="badge" id="redoCount">0</span>
+            </button>
             <button id="exportBtn" class="text-btn" title="导出数据">导出</button>
             <button id="importBtn" class="text-btn" title="导入数据">导入</button>
             <input type="file" id="importFile" accept=".json" style="display:none" />
@@ -774,6 +840,7 @@
         <span>📚 总题目 <strong id="totalCount">0</strong></span>
         <span>📅 今日 <strong id="todayCount">0</strong></span>
         <span>🏷️ 分类 <strong id="categoryCount">0</strong></span>
+        <span class="backup-info">💾 上次导出：<span class="highlight" id="lastExportDisplay">从未</span></span>
     </div>
 
     <!-- ===== 搜索 ===== -->
@@ -813,7 +880,6 @@
                 <label for="qContent">答案 / 总结</label>
                 <textarea id="qContent" placeholder="详细记录你的面试题总结…" required></textarea>
 
-                <!-- 日期和难度改为上下排列，不再使用 .row -->
                 <div>
                     <label for="qDate">日期</label>
                     <input type="date" id="qDate" />
@@ -854,29 +920,130 @@
 
     <script>
         // ============================================================
-        //  数据层
+        //  IndexedDB 操作封装（使用 idb 库）
         // ============================================================
-        const STORAGE_KEY = 'interview_questions';
+        const DB_NAME = 'interviewDB';
+        const DB_VERSION = 1;
 
-        function loadData() {
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    if (Array.isArray(parsed)) return parsed;
+        async function openDB() {
+            return await idb.openDB(DB_NAME, DB_VERSION, {
+                upgrade(db) {
+                    if (!db.objectStoreNames.contains('questions')) {
+                        const store = db.createObjectStore('questions', { keyPath: 'id' });
+                        store.createIndex('date', 'date');
+                        store.createIndex('category', 'category');
+                    }
+                    if (!db.objectStoreNames.contains('meta')) {
+                        const metaStore = db.createObjectStore('meta', { keyPath: 'key' });
+                    }
                 }
-            } catch (_) { /* ignore */ }
-            return [];
+            });
         }
 
-        function saveData(data) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        // 读取所有题目
+        async function loadQuestions() {
+            const db = await openDB();
+            return await db.getAll('questions') || [];
+        }
+
+        // 保存所有题目（先清空再批量添加）
+        async function saveQuestions(questions) {
+            const db = await openDB();
+            const tx = db.transaction('questions', 'readwrite');
+            const store = tx.objectStore('questions');
+            await store.clear();
+            for (const q of questions) {
+                await store.put(q);
+            }
+            await tx.done;
+        }
+
+        // 读取元数据
+        async function loadMeta(key) {
+            const db = await openDB();
+            const record = await db.get('meta', key);
+            return record ? record.value : null;
+        }
+
+        // 保存元数据
+        async function saveMeta(key, value) {
+            const db = await openDB();
+            await db.put('meta', { key, value });
         }
 
         // ============================================================
-        //  状态
+        //  历史管理器（撤销 / 重做）
         // ============================================================
-        let questions = loadData();
+        const MAX_HISTORY = 50;
+        let undoStack = [];
+        let redoStack = [];
+        let isUndoRedo = false; // 防止在撤销/重做过程中再次记录历史
+
+        function pushHistory() {
+            if (isUndoRedo) return;
+            // 深拷贝当前数据
+            const snapshot = JSON.parse(JSON.stringify(questions));
+            undoStack.push(snapshot);
+            if (undoStack.length > MAX_HISTORY) {
+                undoStack.shift();
+            }
+            redoStack = []; // 新操作清空重做栈
+            updateUndoRedoButtons();
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            isUndoRedo = true;
+            // 当前状态推入重做栈
+            redoStack.push(JSON.parse(JSON.stringify(questions)));
+            // 恢复到撤销栈顶
+            const snapshot = undoStack.pop();
+            questions = snapshot;
+            // 保存到 IndexedDB 并刷新界面
+            saveQuestions(questions).then(() => {
+                render();
+                updateUndoRedoButtons();
+                isUndoRedo = false;
+                showToast('已撤销');
+            }).catch(err => {
+                console.error('撤销保存失败', err);
+                isUndoRedo = false;
+            });
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            isUndoRedo = true;
+            undoStack.push(JSON.parse(JSON.stringify(questions)));
+            const snapshot = redoStack.pop();
+            questions = snapshot;
+            saveQuestions(questions).then(() => {
+                render();
+                updateUndoRedoButtons();
+                isUndoRedo = false;
+                showToast('已重做');
+            }).catch(err => {
+                console.error('重做保存失败', err);
+                isUndoRedo = false;
+            });
+        }
+
+        function updateUndoRedoButtons() {
+            const undoBtn = document.getElementById('undoBtn');
+            const redoBtn = document.getElementById('redoBtn');
+            const undoCount = document.getElementById('undoCount');
+            const redoCount = document.getElementById('redoCount');
+
+            undoBtn.disabled = (undoStack.length === 0);
+            redoBtn.disabled = (redoStack.length === 0);
+            undoCount.textContent = undoStack.length;
+            redoCount.textContent = redoStack.length;
+        }
+
+        // ============================================================
+        //  全局状态
+        // ============================================================
+        let questions = [];
         let editingId = null;
         let filterMode = 'all';
         let filterValue = null;
@@ -926,6 +1093,8 @@
         const importBtn = $('#importBtn');
         const importFile = $('#importFile');
 
+        const lastExportDisplay = $('#lastExportDisplay');
+
         // ============================================================
         //  工具函数
         // ============================================================
@@ -952,15 +1121,51 @@
             return plain.length > len ? plain.slice(0, len) + '…' : plain;
         }
 
-        function showToast(msg) {
+        function showToast(msg, isWarning = false) {
             if (toastTimer) clearTimeout(toastTimer);
             toastEl.textContent = msg;
+            toastEl.className = 'toast' + (isWarning ? ' warning' : '');
             toastEl.classList.add('show');
             toastTimer = setTimeout(() => {
                 toastEl.classList.remove('show');
                 toastTimer = null;
-            }, 2200);
+            }, 4000);
         }
+
+        // ============================================================
+        //  备份检查 & 显示
+        // ============================================================
+        async function updateBackupInfo() {
+            const lastDate = await loadMeta('lastExportDate');
+            if (lastDate) {
+                const days = Math.floor((new Date() - new Date(lastDate)) / (1000 * 60 * 60 * 24));
+                lastExportDisplay.textContent = days === 0 ? '今天' : `${days}天前`;
+                // 检查是否超过7天
+                if (days >= 7) {
+                    // 显示警告 Toast，点击触发导出
+                    const toastMsg = `⚠️ 建议备份数据（上次导出 ${days} 天前）`;
+                    showToast(toastMsg, true);
+                    // 为 Toast 添加点击事件（仅一次）
+                    toastEl.onclick = function() {
+                        toastEl.onclick = null; // 防止重复绑定
+                        exportBtn.click(); // 触发导出（用户手势）
+                    };
+                }
+            } else {
+                lastExportDisplay.textContent = '从未';
+                // 从未导出过，也提醒一次
+                showToast('💡 建议导出数据以作备份', false);
+                toastEl.onclick = function() {
+                    toastEl.onclick = null;
+                    exportBtn.click();
+                };
+            }
+        }
+
+        // 每天检查一次
+        setInterval(() => {
+            updateBackupInfo();
+        }, 24 * 60 * 60 * 1000);
 
         // ============================================================
         //  核心渲染
@@ -1077,6 +1282,8 @@
                     }
                 });
             });
+
+            updateUndoRedoButtons();
         }
 
         function escapeHtml(text) {
@@ -1157,13 +1364,70 @@
             filterDetail.classList.add('visible');
         }
 
-        function deleteQuestion(id) {
+        // ============================================================
+        //  数据操作（含历史记录）
+        // ============================================================
+        async function deleteQuestion(id) {
+            if (isUndoRedo) return;
+            // 记录历史
+            pushHistory();
             questions = questions.filter(q => q.id !== id);
-            saveData(questions);
+            await saveQuestions(questions);
             render();
             showToast('已删除');
         }
 
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (isUndoRedo) return;
+            const title = qTitle.value.trim();
+            const content = qContent.value.trim();
+            if (!title || !content) {
+                showToast('请填写题目和内容');
+                return;
+            }
+            const category = qCategory.value.trim() || '未分类';
+            const date = qDate.value || getTodayStr();
+            const difficulty = qDifficulty.value || '中等';
+
+            // 记录历史
+            pushHistory();
+
+            if (editingId) {
+                const index = questions.findIndex(q => q.id === editingId);
+                if (index !== -1) {
+                    questions[index] = {
+                        ...questions[index],
+                        title,
+                        content,
+                        category,
+                        date,
+                        difficulty,
+                    };
+                    await saveQuestions(questions);
+                    render();
+                    showToast('已更新');
+                }
+            } else {
+                const newQ = {
+                    id: generateId(),
+                    title,
+                    content,
+                    category,
+                    date,
+                    difficulty,
+                };
+                questions.push(newQ);
+                await saveQuestions(questions);
+                render();
+                showToast('已添加 ✅');
+            }
+            resetForm();
+        }
+
+        // ============================================================
+        //  UI 交互函数
+        // ============================================================
         function openDetail(id) {
             const q = questions.find(item => item.id === id);
             if (!q) return;
@@ -1210,51 +1474,10 @@
             document.body.style.overflow = '';
         }
 
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            const title = qTitle.value.trim();
-            const content = qContent.value.trim();
-            if (!title || !content) {
-                showToast('请填写题目和内容');
-                return;
-            }
-            const category = qCategory.value.trim() || '未分类';
-            const date = qDate.value || getTodayStr();
-            const difficulty = qDifficulty.value || '中等';
-
-            if (editingId) {
-                const index = questions.findIndex(q => q.id === editingId);
-                if (index !== -1) {
-                    questions[index] = {
-                        ...questions[index],
-                        title,
-                        content,
-                        category,
-                        date,
-                        difficulty,
-                    };
-                    saveData(questions);
-                    render();
-                    showToast('已更新');
-                }
-            } else {
-                const newQ = {
-                    id: generateId(),
-                    title,
-                    content,
-                    category,
-                    date,
-                    difficulty,
-                };
-                questions.push(newQ);
-                saveData(questions);
-                render();
-                showToast('已添加 ✅');
-            }
-            resetForm();
-        }
-
-        function exportData() {
+        // ============================================================
+        //  导出 / 导入
+        // ============================================================
+        async function exportData() {
             if (questions.length === 0) {
                 showToast('没有数据可导出');
                 return;
@@ -1271,12 +1494,15 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('导出成功');
+            // 记录导出日期
+            await saveMeta('lastExportDate', getTodayStr());
+            updateBackupInfo();
+            showToast('导出成功 💾');
         }
 
-        function importData(file) {
+        async function importData(file) {
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
                     if (!Array.isArray(data) || data.length === 0) {
@@ -1287,6 +1513,10 @@
                         showToast('数据格式不匹配');
                         return;
                     }
+
+                    // 记录历史（导入视为一次整体操作）
+                    pushHistory();
+
                     if (!confirm(`将导入 ${data.length} 条题目，是否覆盖当前数据？\n（取消则追加）`)) {
                         const existingIds = new Set(questions.map(q => q.id));
                         let added = 0;
@@ -1297,12 +1527,12 @@
                                 added++;
                             }
                         });
-                        saveData(questions);
+                        await saveQuestions(questions);
                         render();
                         showToast(`追加了 ${added} 条，跳过重复`);
                     } else {
                         questions = data;
-                        saveData(questions);
+                        await saveQuestions(questions);
                         render();
                         showToast(`导入成功，共 ${data.length} 条`);
                     }
@@ -1358,7 +1588,23 @@
             importFile.value = '';
         });
 
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('redoBtn').addEventListener('click', redo);
+
+        // 键盘快捷键
         document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    redo(); // Ctrl+Shift+Z 或 Cmd+Shift+Z 为重做
+                } else {
+                    undo();
+                }
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                e.preventDefault();
+                redo();
+            }
             if (e.key === 'Escape') {
                 if (formModal.classList.contains('open')) resetForm();
                 if (detailOverlay.classList.contains('open')) closeDetail();
@@ -1368,49 +1614,56 @@
         // ============================================================
         //  初始化
         // ============================================================
-        qDate.value = getTodayStr();
-        render();
-
-        if (questions.length === 0) {
-            const sample = {
-                id: generateId(),
-                title: '什么是闭包？',
-                content: '闭包是指一个函数能够记住并访问其词法作用域中的变量，即使该函数在其词法作用域之外执行。\n\n简单来说，闭包是函数和其周围状态（词法环境）的引用捆绑在一起形成的组合。\n\n常见应用场景：\n1. 私有变量\n2. 柯里化\n3. 回调函数',
-                category: 'JavaScript',
-                date: getTodayStr(),
-                difficulty: '中等',
-            };
-            questions.push(sample);
-            saveData(questions);
+        async function init() {
+            // 加载数据
+            questions = await loadQuestions();
+            // 如果数据为空，添加示例
+            if (questions.length === 0) {
+                const sample = {
+                    id: generateId(),
+                    title: '什么是闭包？',
+                    content: '闭包是指一个函数能够记住并访问其词法作用域中的变量，即使该函数在其词法作用域之外执行。\n\n简单来说，闭包是函数和其周围状态（词法环境）的引用捆绑在一起形成的组合。\n\n常见应用场景：\n1. 私有变量\n2. 柯里化\n3. 回调函数',
+                    category: 'JavaScript',
+                    date: getTodayStr(),
+                    difficulty: '中等',
+                };
+                questions.push(sample);
+                await saveQuestions(questions);
+            }
+            // 渲染
             render();
-            showToast('📖 已添加示例，开始记录吧！');
+            // 显示备份信息
+            await updateBackupInfo();
+            // 设置默认日期
+            qDate.value = getTodayStr();
+
+            console.log('📝 面试题宝典已启动！');
+            console.log(`当前共 ${questions.length} 道题`);
         }
 
-        console.log('📝 面试题宝典已启动！');
-        console.log(`当前共 ${questions.length} 道题`);
+        // 启动应用
+        init().catch(err => console.error('初始化失败', err));
 
         // ============================================================
         //  启动 Lottie 动画 & 隐藏启动画面
         // ============================================================
         window.addEventListener('load', function() {
-            // 1. 加载 Lottie 动画
             const lottieContainer = document.getElementById('lottie-logo');
             if (lottieContainer) {
                 const anim = lottie.loadAnimation({
                     container: lottieContainer,
                     renderer: 'svg',
-                    loop: true,          // 循环播放
+                    loop: true,
                     autoplay: true,
-                    path: 'lottie-logo.json'  // 确保文件名与您保存的一致
+                    path: 'lottie-logo.json'
                 });
             }
 
-            // 2. 延迟隐藏启动画面（让动画播放至少 2.5 秒）
             const splash = document.getElementById('splashScreen');
             if (splash) {
                 setTimeout(() => {
                     splash.classList.add('hidden');
-                }, 2800); // 可根据动画长度调整
+                }, 2800);
             }
         });
     </script>
