@@ -1,6 +1,6 @@
 {
-  "name": "面试题宝典",
-  "short_name": "面试题宝典",
+  "name": "学习记录",
+  "short_name": "记录",
   "description": "记录并复习面试题",
   "start_url": "index.html",
   "display": "standalone",
