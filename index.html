@@ -1485,16 +1485,43 @@
             if (!confirm('确定要导出所有数据吗？\n将导出为 JSON 文件。')) {
                 return;
             }
-            const blob = new Blob([JSON.stringify(questions, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+
+            const jsonStr = JSON.stringify(questions, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const file = new File([blob], `面试题_${getTodayStr()}.json`, { type: 'application/json' });
+
+            // ✅ 优先使用 Web Share API (iOS 主屏幕应用完美支持)
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ files: [file] });
+                    await saveMeta('lastExportDate', getTodayStr());
+                    updateBackupInfo();
+                    showToast('导出成功 💾');
+                    return;
+                } catch (e) {
+                    if (e.name !== 'AbortError') {
+                        showToast('分享失败，尝试备用方案');
+                    } else {
+                        return; // 用户主动取消，不报错
+                    }
+                }
+            }
+
+            // ⬇️ 降级方案（Android / 桌面端 / 不支持分享的浏览器）
+            const fallbackUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
+            a.href = fallbackUrl;
             a.download = `面试题_${getTodayStr()}.json`;
+            a.target = '_blank'; // 🔑 关键修复：避免当前页面跳转到 blob 地址
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            // 记录导出日期
+
+            // 延迟释放，确保 iOS 有足够时间处理下载
+            setTimeout(() => {
+                URL.revokeObjectURL(fallbackUrl);
+            }, 5000);
+
             await saveMeta('lastExportDate', getTodayStr());
             updateBackupInfo();
             showToast('导出成功 💾');
