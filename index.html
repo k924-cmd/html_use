@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>📝 面试题宝典</title>
+    <style>
+        /* ===== 全局重置 & 主题 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --safe-bottom: env(safe-area-inset-bottom, 16px);
+            --transition: 0.25s ease;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding-bottom: calc(80px + var(--safe-bottom));
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== 顶部栏 ===== */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 20px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .app-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .app-header h1 span {
+            background: var(--primary);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 0 10px;
+            border-radius: 30px;
+            line-height: 22px;
+            letter-spacing: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .header-actions button {
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 8px;
+            transition: background var(--transition);
+            color: var(--text-secondary);
+        }
+        .header-actions button:hover {
+            background: var(--border);
+        }
+
+        /* ===== 统计条 ===== */
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            padding: 12px 20px 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+        .stats-bar strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+        .stats-bar .dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            margin-right: 4px;
+        }
+
+        /* ===== 搜索框 ===== */
+        .search-wrap {
+            padding: 0 20px 12px;
+        }
+        .search-wrap input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            background: var(--card-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 14px center;
+            background-size: 20px;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .search-wrap input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+        .search-wrap input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* ===== 分类过滤器 ===== */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 0 20px 14px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .filter-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-tabs button {
+            flex-shrink: 0;
+            padding: 6px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .filter-tabs button.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+        }
+        .filter-tabs button:not(.active):hover {
+            background: var(--border);
+        }
+
+        /* ===== 题目列表 ===== */
+        .list {
+            padding: 0 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state .big-emoji {
+            font-size: 56px;
+            display: block;
+            margin-bottom: 16px;
+        }
+        .empty-state p {
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        /* ===== 卡片 ===== */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 18px 20px 16px;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+            border: 1px solid transparent;
+            cursor: pointer;
+            position: relative;
+        }
+        .card:active {
+            transform: scale(0.99);
+        }
+        .card:hover {
+            border-color: var(--border);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+            line-height: 1.4;
+            flex: 1;
+        }
+        .card-tag {
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 12px;
+            border-radius: 30px;
+            background: var(--bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            white-space: nowrap;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-preview {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin: 6px 0 10px;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+            margin-top: 2px;
+        }
+        .card-footer .date {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .card-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .card-actions button {
+            background: none;
+            border: none;
+            font-size: 17px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            color: var(--text-muted);
+            transition: background var(--transition), color var(--transition);
+        }
+        .card-actions button:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+        .card-actions .delete-btn:hover {
+            color: #ef4444;
+            background: #fef2f2;
+        }
+
+        /* ===== 底部浮动按钮 ===== */
+        .fab {
+            position: fixed;
+            bottom: calc(24px + var(--safe-bottom));
+            right: 24px;
+            z-index: 30;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            font-size: 32px;
+            box-shadow: 0 6px 24px rgba(79, 70, 229, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fab:active {
+            transform: scale(0.92);
+        }
+        .fab:hover {
+            box-shadow: 0 8px 32px rgba(79, 70, 229, 0.5);
+        }
+
+        /* ===== 模态框 ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 500px;
+            max-height: 92vh;
+            border-radius: var(--radius) var(--radius) 0 0;
+            padding: 24px 20px calc(20px + var(--safe-bottom));
+            transform: translateY(40px);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+            overflow-y: auto;
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.08);
+        }
+        .modal-overlay.open .modal {
+            transform: translateY(0);
+        }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            border-radius: 4px;
+            background: var(--border);
+            margin: 0 auto 18px;
+        }
+
+        .modal h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 14px 0 4px;
+        }
+        .modal label:first-of-type {
+            margin-top: 0;
+        }
+
+        .modal input,
+        .modal select,
+        .modal textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-family: inherit;
+            background: var(--bg);
+            transition: border-color var(--transition), box-shadow var(--transition);
+            outline: none;
+        }
+        .modal input:focus,
+        .modal select:focus,
+        .modal textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.10);
+            background: var(--card-bg);
+        }
+        .modal textarea {
+            min-height: 150px;
+            resize: vertical;
+            line-height: 1.7;
+        }
+
+        .modal .row {
+            display: flex;
+            gap: 12px;
+        }
+        .modal .row>* {
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 22px;
+        }
+        .modal-actions button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .modal-actions .btn-cancel {
+            background: var(--bg);
+            color: var(--text-secondary);
+        }
+        .modal-actions .btn-cancel:hover {
+            background: var(--border);
+        }
+        .modal-actions .btn-submit {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(79, 70, 229, 0.25);
+        }
+        .modal-actions .btn-submit:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.35);
+        }
+
+        /* ===== 详情弹窗 ===== */
+        .detail-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 90;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            padding: 20px;
+        }
+        .detail-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .detail-card {
+            background: var(--card-bg);
+            max-width: 520px;
+            width: 100%;
+            max-height: 85vh;
+            border-radius: var(--radius);
+            padding: 28px 24px 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            transform: scale(0.96) translateY(10px);
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+            overflow-y: auto;
+            position: relative;
+        }
+        .detail-overlay.open .detail-card {
+            transform: scale(1) translateY(0);
+        }
+
+        .detail-card .close-detail {
+            position: sticky;
+            top: 0;
+            float: right;
+            background: var(--bg);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition);
+            margin-bottom: 8px;
+        }
+        .detail-card .close-detail:hover {
+            background: var(--border);
+        }
+
+        .detail-card .detail-title {
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 6px;
+            padding-right: 44px;
+        }
+        .detail-card .detail-tag {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 14px;
+            border-radius: 30px;
+            background: var(--bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            margin: 4px 0 12px;
+        }
+        .detail-card .detail-date {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+        .detail-card .detail-body {
+            font-size: 15.5px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text);
+        }
+        .detail-card .detail-body p {
+            margin-bottom: 1em;
+        }
+
+        /* ===== 滚动条美化 ===== */
+        .modal::-webkit-scrollbar,
+        .detail-card::-webkit-scrollbar {
+            width: 4px;
+        }
+        .modal::-webkit-scrollbar-thumb,
+        .detail-card::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 8px;
+        }
+
+        /* ===== 响应式微调 ===== */
+        @media (min-width: 640px) {
+            .list {
+                padding: 0 24px 24px;
+                max-width: 640px;
+                margin: 0 auto;
+            }
+            .search-wrap,
+            .filter-tabs,
+            .stats-bar {
+                padding-left: 24px;
+                padding-right: 24px;
+                max-width: 640px;
+                margin: 0 auto;
+            }
+            .app-header {
+                padding-left: 24px;
+                padding-right: 24px;
+            }
+            .modal {
+                border-radius: var(--radius);
+                margin-bottom: 20px;
+                max-height: 80vh;
+            }
+            .modal-overlay {
+                align-items: center;
+            }
+            .modal .modal-handle {
+                display: none;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .card-title {
+                font-size: 15px;
+            }
+            .card-preview {
+                font-size: 13px;
+            }
+            .modal h2 {
+                font-size: 18px;
+            }
+        }
+
+        /* ===== 工具类 ===== */
+        .hidden {
+            display: none !important;
+        }
+        .mt-1 {
+            margin-top: 6px;
+        }
+
+        /* Toast 提示 */
+        .toast {
+            position: fixed;
+            bottom: calc(100px + var(--safe-bottom));
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.35s ease;
+            z-index: 200;
+            white-space: nowrap;
+            max-width: 90%;
+        }
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 顶部 ===== -->
+    <header class="app-header">
+        <h1>📝 面试题宝典 <span id="countBadge">0</span></h1>
+        <div class="header-actions">
+            <button id="exportBtn" title="导出数据">📤</button>
+            <button id="importBtn" title="导入数据">📥</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" />
+        </div>
+    </header>
+
+    <!-- ===== 统计 ===== -->
+    <div class="stats-bar">
+        <span>📚 总题目 <strong id="totalCount">0</strong></span>
+        <span>📅 今日 <strong id="todayCount">0</strong></span>
+        <span>🏷️ 分类 <strong id="categoryCount">0</strong></span>
+    </div>
+
+    <!-- ===== 搜索 ===== -->
+    <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="搜索题目、内容、分类…" />
+    </div>
+
+    <!-- ===== 分类过滤 ===== -->
+    <div class="filter-tabs" id="filterTabs">
+        <button class="active" data-category="all">🏷️ 全部</button>
+    </div>
+
+    <!-- ===== 列表 ===== -->
+    <div class="list" id="questionList"></div>
+
+    <!-- ===== 浮动添加按钮 ===== -->
+    <button class="fab" id="fabAdd" aria-label="添加面试题">＋</button>
+
+    <!-- ===== 添加/编辑模态框 ===== -->
+    <div class="modal-overlay" id="formModal">
+        <div class="modal">
+            <div class="modal-handle"></div>
+            <h2 id="formTitle">✏️ 添加面试题</h2>
+            <form id="questionForm" autocomplete="off">
+                <label for="qTitle">题目</label>
+                <input type="text" id="qTitle" placeholder="例如：什么是闭包？" required />
+
+                <label for="qCategory">分类</label>
+                <input type="text" id="qCategory" placeholder="例如：JavaScript" list="categoryList" />
+                <datalist id="categoryList"></datalist>
+
+                <label for="qContent">答案 / 总结</label>
+                <textarea id="qContent" placeholder="详细记录你的面试题总结…" required></textarea>
+
+                <div class="row">
+                    <div>
+                        <label for="qDate">日期</label>
+                        <input type="date" id="qDate" />
+                    </div>
+                    <div>
+                        <label for="qDifficulty">难度</label>
+                        <select id="qDifficulty">
+                            <option value="简单">⭐ 简单</option>
+                            <option value="中等" selected>⭐⭐ 中等</option>
+                            <option value="困难">⭐⭐⭐ 困难</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" id="formCancel">取消</button>
+                    <button type="submit" class="btn-submit" id="formSubmit">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== 详情弹窗 ===== -->
+    <div class="detail-overlay" id="detailOverlay">
+        <div class="detail-card">
+            <button class="close-detail" id="detailClose">✕</button>
+            <div class="detail-title" id="detailTitle"></div>
+            <div>
+                <span class="detail-tag" id="detailTag"></span>
+                <span class="detail-tag" id="detailDifficulty" style="margin-left:6px;"></span>
+            </div>
+            <div class="detail-date" id="detailDate"></div>
+            <div class="detail-body" id="detailBody"></div>
+        </div>
+    </div>
+
+    <!-- ===== Toast ===== -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ============================================================
+        //  数据层
+        // ============================================================
+        const STORAGE_KEY = 'interview_questions';
+
+        function loadData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) return parsed;
+                }
+            } catch (_) { /* ignore */ }
+            return [];
+        }
+
+        function saveData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        // ============================================================
+        //  状态
+        // ============================================================
+        let questions = loadData();
+        let editingId = null;
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        // ============================================================
+        //  DOM 引用
+        // ============================================================
+        const $ = (s) => document.querySelector(s);
+        const $$ = (s) => document.querySelectorAll(s);
+
+        const listEl = $('#questionList');
+        const searchInput = $('#searchInput');
+        const filterTabs = $('#filterTabs');
+        const fabAdd = $('#fabAdd');
+
+        const formModal = $('#formModal');
+        const formTitle = $('#formTitle');
+        const qTitle = $('#qTitle');
+        const qCategory = $('#qCategory');
+        const qContent = $('#qContent');
+        const qDate = $('#qDate');
+        const qDifficulty = $('#qDifficulty');
+        const formCancel = $('#formCancel');
+        const formSubmit = $('#formSubmit');
+        const questionForm = $('#questionForm');
+        const categoryList = $('#categoryList');
+
+        const detailOverlay = $('#detailOverlay');
+        const detailTitle = $('#detailTitle');
+        const detailTag = $('#detailTag');
+        const detailDifficulty = $('#detailDifficulty');
+        const detailDate = $('#detailDate');
+        const detailBody = $('#detailBody');
+        const detailClose = $('#detailClose');
+
+        const totalCount = $('#totalCount');
+        const todayCount = $('#todayCount');
+        const categoryCount = $('#categoryCount');
+        const countBadge = $('#countBadge');
+
+        const toastEl = $('#toast');
+        let toastTimer = null;
+
+        const exportBtn = $('#exportBtn');
+        const importBtn = $('#importBtn');
+        const importFile = $('#importFile');
+
+        // ============================================================
+        //  工具函数
+        // ============================================================
+        function formatDate(dateStr) {
+            if (!dateStr) return '未知日期';
+            try {
+                const d = new Date(dateStr);
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            } catch (_) { return dateStr; }
+        }
+
+        function getTodayStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        }
+
+        function truncateText(text, len = 80) {
+            if (!text) return '';
+            const plain = text.replace(/\s+/g, ' ').trim();
+            return plain.length > len ? plain.slice(0, len) + '…' : plain;
+        }
+
+        function showToast(msg) {
+            if (toastTimer) clearTimeout(toastTimer);
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            toastTimer = setTimeout(() => {
+                toastEl.classList.remove('show');
+                toastTimer = null;
+            }, 2200);
+        }
+
+        // ============================================================
+        //  渲染
+        // ============================================================
+        function render() {
+            // 过滤
+            let filtered = questions;
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(q => (q.category || '未分类') === currentFilter);
+            }
+            if (searchQuery.trim()) {
+                const q = searchQuery.trim().toLowerCase();
+                filtered = filtered.filter(item =>
+                    (item.title || '').toLowerCase().includes(q) ||
+                    (item.content || '').toLowerCase().includes(q) ||
+                    (item.category || '').toLowerCase().includes(q)
+                );
+            }
+            // 按日期降序
+            filtered = [...filtered].sort((a, b) => {
+                if (a.date && b.date) return b.date.localeCompare(a.date);
+                if (a.date) return -1;
+                if (b.date) return 1;
+                return 0;
+            });
+
+            // 统计
+            const total = questions.length;
+            const today = questions.filter(q => q.date === getTodayStr()).length;
+            const cats = new Set(questions.map(q => q.category || '未分类'));
+            const catCount = cats.size;
+
+            totalCount.textContent = total;
+            todayCount.textContent = today;
+            categoryCount.textContent = catCount;
+            countBadge.textContent = total;
+
+            // 更新分类下拉
+            const input = qCategory;
+            const datalist = categoryList;
+            const currentVal = input.value;
+            datalist.innerHTML = '';
+            const sortedCats = Array.from(cats).sort();
+            sortedCats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                datalist.appendChild(opt);
+            });
+            // 保持输入框值不变（但若值不在列表中，显示原值）
+            // 同时更新过滤 tab
+            renderFilterTabs(sortedCats);
+
+            // 空状态
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <span class="big-emoji">📭</span>
+                        <p>${searchQuery.trim() ? '没有匹配的题目，试试其他关键词吧' : '还没有面试题，点击右下角 ＋ 添加'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 渲染卡片
+            listEl.innerHTML = filtered.map(q => {
+                const preview = truncateText(q.content || '', 100);
+                const cat = q.category || '未分类';
+                const dateStr = formatDate(q.date);
+                return `
+                    <div class="card" data-id="${q.id}">
+                        <div class="card-header">
+                            <div class="card-title">${escapeHtml(q.title || '无标题')}</div>
+                            <span class="card-tag">${escapeHtml(cat)}</span>
+                        </div>
+                        <div class="card-preview">${escapeHtml(preview)}</div>
+                        <div class="card-footer">
+                            <span class="date">📅 ${dateStr}</span>
+                            <div class="card-actions">
+                                <button class="edit-btn" data-id="${q.id}" title="编辑">✏️</button>
+                                <button class="delete-btn" data-id="${q.id}" title="删除">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 事件：点击卡片打开详情（排除按钮点击）
+            listEl.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // 如果点击的是按钮内部，不触发
+                    if (e.target.closest('.card-actions')) return;
+                    const id = card.dataset.id;
+                    openDetail(id);
+                });
+            });
+
+            // 编辑按钮
+            listEl.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    openEditForm(id);
+                });
+            });
+
+            // 删除按钮
+            listEl.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    if (confirm('确定要删除这道题吗？')) {
+                        deleteQuestion(id);
+                    }
+                });
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================================
+        //  分类 Tabs
+        // ============================================================
+        function renderFilterTabs(categories) {
+            const allCats = ['all', ...categories];
+            // 保留当前激活状态
+            let active = currentFilter;
+            if (!allCats.includes(active) && active !== 'all') active = 'all';
+
+            filterTabs.innerHTML = allCats.map(cat => {
+                const label = cat === 'all' ? '🏷️ 全部' : escapeHtml(cat);
+                const activeClass = cat === active ? 'active' : '';
+                return `<button class="${activeClass}" data-category="${cat}">${label}</button>`;
+            }).join('');
+
+            filterTabs.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentFilter = btn.dataset.category;
+                    render();
+                });
+            });
+        }
+
+        // ============================================================
+        //  CRUD
+        // ============================================================
+        function deleteQuestion(id) {
+            questions = questions.filter(q => q.id !== id);
+            saveData(questions);
+            render();
+            showToast('已删除');
+        }
+
+        function openDetail(id) {
+            const q = questions.find(item => item.id === id);
+            if (!q) return;
+            detailTitle.textContent = q.title || '无标题';
+            detailTag.textContent = q.category || '未分类';
+            detailDifficulty.textContent = q.difficulty || '⭐';
+            detailDate.textContent = '📅 ' + formatDate(q.date);
+            detailBody.textContent = q.content || '（暂无内容）';
+            detailOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetail() {
+            detailOverlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function openEditForm(id) {
+            const q = questions.find(item => item.id === id);
+            if (!q) return;
+            editingId = id;
+            formTitle.textContent = '✏️ 编辑面试题';
+            qTitle.value = q.title || '';
+            qCategory.value = q.category || '';
+            qContent.value = q.content || '';
+            qDate.value = q.date || '';
+            qDifficulty.value = q.difficulty || '中等';
+            formSubmit.textContent = '更新';
+            formModal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            qTitle.focus();
+        }
+
+        function resetForm() {
+            editingId = null;
+            formTitle.textContent = '✏️ 添加面试题';
+            qTitle.value = '';
+            qCategory.value = '';
+            qContent.value = '';
+            qDate.value = getTodayStr();
+            qDifficulty.value = '中等';
+            formSubmit.textContent = '保存';
+            formModal.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const title = qTitle.value.trim();
+            const content = qContent.value.trim();
+            if (!title || !content) {
+                showToast('请填写题目和内容');
+                return;
+            }
+            const category = qCategory.value.trim() || '未分类';
+            const date = qDate.value || getTodayStr();
+            const difficulty = qDifficulty.value || '中等';
+
+            if (editingId) {
+                // 编辑
+                const index = questions.findIndex(q => q.id === editingId);
+                if (index !== -1) {
+                    questions[index] = {
+                        ...questions[index],
+                        title,
+                        content,
+                        category,
+                        date,
+                        difficulty,
+                    };
+                    saveData(questions);
+                    render();
+                    showToast('已更新');
+                }
+            } else {
+                // 新增
+                const newQ = {
+                    id: generateId(),
+                    title,
+                    content,
+                    category,
+                    date,
+                    difficulty,
+                };
+                questions.push(newQ);
+                saveData(questions);
+                render();
+                showToast('已添加 ✅');
+            }
+            resetForm();
+        }
+
+        // ============================================================
+        //  导入 / 导出
+        // ============================================================
+        function exportData() {
+            if (questions.length === 0) {
+                showToast('没有数据可导出');
+                return;
+            }
+            const blob = new Blob([JSON.stringify(questions, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `面试题_${getTodayStr()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('导出成功');
+        }
+
+        function importData(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data) || data.length === 0) {
+                        showToast('无效数据文件');
+                        return;
+                    }
+                    // 简单校验
+                    if (!data[0].id || !data[0].title) {
+                        showToast('数据格式不匹配');
+                        return;
+                    }
+                    if (!confirm(`将导入 ${data.length} 条题目，是否覆盖当前数据？\n（取消则追加）`)) {
+                        // 追加
+                        const existingIds = new Set(questions.map(q => q.id));
+                        let added = 0;
+                        data.forEach(item => {
+                            if (!existingIds.has(item.id)) {
+                                questions.push(item);
+                                existingIds.add(item.id);
+                                added++;
+                            }
+                        });
+                        saveData(questions);
+                        render();
+                        showToast(`追加了 ${added} 条，跳过重复`);
+                    } else {
+                        // 覆盖
+                        questions = data;
+                        saveData(questions);
+                        render();
+                        showToast(`导入成功，共 ${data.length} 条`);
+                    }
+                } catch (err) {
+                    showToast('导入失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ============================================================
+        //  事件绑定
+        // ============================================================
+
+        // 搜索
+        searchInput.addEventListener('input', () => {
+            searchQuery = searchInput.value;
+            render();
+        });
+
+        // FAB
+        fabAdd.addEventListener('click', () => {
+            resetForm();
+            qDate.value = getTodayStr();
+            formModal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            qTitle.focus();
+        });
+
+        // 表单取消
+        formCancel.addEventListener('click', resetForm);
+        // 点击蒙层关闭
+        formModal.addEventListener('click', (e) => {
+            if (e.target === formModal) resetForm();
+        });
+
+        // 提交
+        questionForm.addEventListener('submit', handleFormSubmit);
+
+        // 详情关闭
+        detailClose.addEventListener('click', closeDetail);
+        detailOverlay.addEventListener('click', (e) => {
+            if (e.target === detailOverlay) closeDetail();
+        });
+
+        // 导出
+        exportBtn.addEventListener('click', exportData);
+
+        // 导入
+        importBtn.addEventListener('click', () => importFile.click());
+        importFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                importData(e.target.files[0]);
+            }
+            importFile.value = '';
+        });
+
+        // 键盘快捷键：ESC 关闭模态
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (formModal.classList.contains('open')) resetForm();
+                if (detailOverlay.classList.contains('open')) closeDetail();
+            }
+        });
+
+        // ============================================================
+        //  初始化
+        // ============================================================
+        // 默认日期
+        qDate.value = getTodayStr();
+
+        // 初次渲染
+        render();
+
+        // 如果数据为空，显示一个欢迎示例
+        if (questions.length === 0) {
+            // 可添加示例数据
+            const sample = {
+                id: generateId(),
+                title: '什么是闭包？',
+                content: '闭包是指一个函数能够记住并访问其词法作用域中的变量，即使该函数在其词法作用域之外执行。\n\n简单来说，闭包是函数和其周围状态（词法环境）的引用捆绑在一起形成的组合。\n\n常见应用场景：\n1. 私有变量\n2. 柯里化\n3. 回调函数',
+                category: 'JavaScript',
+                date: getTodayStr(),
+                difficulty: '中等',
+            };
+            questions.push(sample);
+            saveData(questions);
+            render();
+            showToast('📖 已添加示例，开始记录吧！');
+        }
+
+        console.log('📝 面试题宝典已启动！');
+        console.log(`当前共 ${questions.length} 道题`);
+    </script>
+
+</body>
+</html>
