@@ -711,6 +711,20 @@
             align-items: center;
             gap: 8px;
         }
+        .modal h2 .draft-badge {
+            font-size: 12px;
+            font-weight: 500;
+            background: #fbbf24;
+            color: #78350f;
+            padding: 0 10px;
+            border-radius: 30px;
+            line-height: 22px;
+            letter-spacing: 0;
+            display: none;
+        }
+        .modal h2 .draft-badge.show {
+            display: inline-block;
+        }
 
         .modal label {
             display: block;
@@ -747,6 +761,56 @@
             min-height: 150px;
             resize: vertical;
             line-height: 1.7;
+        }
+
+        /* ---- 字符按钮栏 ---- */
+        .char-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 6px 0 10px 0;
+            border-bottom: 1px dashed var(--border);
+            margin-bottom: 6px;
+        }
+        .char-buttons button {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        }
+        .char-buttons button:active {
+            transform: scale(0.88);
+            background: var(--primary-light);
+            color: #fff;
+            border-color: var(--primary-light);
+        }
+        .char-buttons button:hover {
+            background: var(--bg);
+            border-color: var(--primary);
+        }
+        .char-buttons .char-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: none;
+            /* 默认不显示文字，只显示符号 */;
+        }
+        /* 移动端适当放大点击区域 */
+        @media (max-width: 480px) {
+            .char-buttons button {
+                width: 48px;
+                height: 48px;
+                font-size: 26px;
+            }
         }
 
         .modal-actions {
@@ -980,6 +1044,12 @@
         .toast.warning {
             background: #dc2626;
         }
+        .toast.success {
+            background: #059669;
+        }
+        .toast.info {
+            background: #2563eb;
+        }
 
         /* ===== 启动画面 ===== */
         .splash-screen {
@@ -1142,7 +1212,10 @@
     <div class="modal-overlay" id="formModal">
         <div class="modal">
             <div class="modal-handle"></div>
-            <h2 id="formTitle">✏️ 添加面试题</h2>
+            <h2 id="formTitle">
+                ✏️ 添加面试题
+                <span class="draft-badge" id="draftBadge">📄 草稿</span>
+            </h2>
             <form id="questionForm" autocomplete="off">
                 <label for="qTitle">题目</label>
                 <input type="text" id="qTitle" placeholder="例如：什么是闭包？" required />
@@ -1152,6 +1225,16 @@
                 <datalist id="categoryList"></datalist>
 
                 <label for="qContent">答案 / 总结</label>
+                <!-- ===== 字符快捷按钮 ===== -->
+                <div class="char-buttons" id="charButtons">
+                    <button type="button" data-char="●" title="一级实心黑圆点">●</button>
+                    <button type="button" data-char="•" title="二级实心黑圆点">•</button>
+                    <button type="button" data-char="■" title="一级实心方原点">■</button>
+                    <button type="button" data-char="▪" title="二级实心方原点">▪</button>
+                    <button type="button" data-char="○" title="空心圆点">○</button>
+                    <button type="button" data-char="□" title="空心方点">□</button>
+                    <button type="button" data-char="❖" title="装饰菱形">❖</button>
+                </div>
                 <textarea id="qContent" placeholder="详细记录你的面试题总结…" required></textarea>
 
                 <div>
@@ -1333,6 +1416,7 @@
 
         const formModal = $('#formModal');
         const formTitle = $('#formTitle');
+        const draftBadge = $('#draftBadge');
         const qTitle = $('#qTitle');
         const qCategory = $('#qCategory');
         const qContent = $('#qContent');
@@ -1373,6 +1457,136 @@
         const moreBtn = $('#moreBtn');
 
         // ============================================================
+        //  草稿管理（防误触核心功能）
+        // ============================================================
+        const DRAFT_KEY = 'interviewFormDraft';
+
+        /** 获取当前草稿 */
+        function getDraft() {
+            try {
+                const raw = localStorage.getItem(DRAFT_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch (_) { return null; }
+        }
+
+        /** 保存草稿 */
+        function saveDraft(mode, editingId, data) {
+            try {
+                const draft = {
+                    mode: mode, // 'add' | 'edit'
+                    editingId: editingId || null,
+                    title: data.title || '',
+                    category: data.category || '',
+                    content: data.content || '',
+                    date: data.date || '',
+                    difficulty: data.difficulty || '中等',
+                    updatedAt: Date.now()
+                };
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+                // 更新草稿徽章
+                updateDraftBadge(true);
+            } catch (_) { /* 忽略存储错误 */ }
+        }
+
+        /** 加载草稿（仅当草稿匹配当前模式/编辑ID时返回） */
+        function loadDraft(mode, editingId) {
+            const draft = getDraft();
+            if (!draft) return null;
+            // 检查模式是否匹配
+            if (draft.mode !== mode) return null;
+            // 编辑模式下，检查 editingId 是否匹配
+            if (mode === 'edit' && draft.editingId !== editingId) return null;
+            // 添加模式下，editingId 应该为 null
+            if (mode === 'add' && draft.editingId !== null) return null;
+            return draft;
+        }
+
+        /** 清除草稿 */
+        function clearDraft() {
+            try {
+                localStorage.removeItem(DRAFT_KEY);
+                updateDraftBadge(false);
+            } catch (_) { /* 忽略 */ }
+        }
+
+        /** 更新草稿徽章显示 */
+        function updateDraftBadge(hasDraft) {
+            if (hasDraft === undefined) {
+                const draft = getDraft();
+                hasDraft = !!draft;
+            }
+            if (hasDraft) {
+                draftBadge.classList.add('show');
+            } else {
+                draftBadge.classList.remove('show');
+            }
+        }
+
+        /** 检查草稿是否有效（编辑模式下，题目是否存在） */
+        function isDraftValid(draft) {
+            if (!draft) return false;
+            if (draft.mode === 'add') return true;
+            if (draft.mode === 'edit' && draft.editingId) {
+                return questions.some(q => q.id === draft.editingId);
+            }
+            return false;
+        }
+
+        /** 从草稿恢复表单数据 */
+        function applyDraftToForm(draft) {
+            if (!draft) return;
+            qTitle.value = draft.title || '';
+            qCategory.value = draft.category || '';
+            qContent.value = draft.content || '';
+            qDate.value = draft.date || getTodayStr();
+            qDifficulty.value = draft.difficulty || '中等';
+            // 自动保存当前草稿（更新更新时间）
+            saveDraft(draft.mode, draft.editingId, {
+                title: draft.title,
+                category: draft.category,
+                content: draft.content,
+                date: draft.date,
+                difficulty: draft.difficulty
+            });
+        }
+
+        /** 从表单收集数据 */
+        function collectFormData() {
+            return {
+                title: qTitle.value.trim(),
+                category: qCategory.value.trim(),
+                content: qContent.value.trim(),
+                date: qDate.value || getTodayStr(),
+                difficulty: qDifficulty.value || '中等'
+            };
+        }
+
+        /** 表单内容变化时自动保存草稿（防抖） */
+        let draftSaveTimer = null;
+
+        function autoSaveDraft() {
+            if (!formModal.classList.contains('open')) return;
+            const mode = editingId ? 'edit' : 'add';
+            const data = collectFormData();
+            // 如果有内容才保存草稿（避免空草稿）
+            if (data.title || data.content || data.category) {
+                saveDraft(mode, editingId, data);
+            } else {
+                // 如果所有字段都为空，清除草稿
+                clearDraft();
+            }
+        }
+
+        // 防抖版本的自动保存
+        function debouncedAutoSave() {
+            if (draftSaveTimer) clearTimeout(draftSaveTimer);
+            draftSaveTimer = setTimeout(() => {
+                autoSaveDraft();
+                draftSaveTimer = null;
+            }, 400);
+        }
+
+        // ============================================================
         //  工具函数
         // ============================================================
         function formatDate(dateStr) {
@@ -1398,10 +1612,12 @@
             return plain.length > len ? plain.slice(0, len) + '…' : plain;
         }
 
-        function showToast(msg, isWarning = false) {
+        function showToast(msg, isWarning = false, type = '') {
             if (toastTimer) clearTimeout(toastTimer);
             toastEl.textContent = msg;
-            toastEl.className = 'toast' + (isWarning ? ' warning' : '');
+            toastEl.className = 'toast';
+            if (type) toastEl.classList.add(type);
+            else if (isWarning) toastEl.classList.add('warning');
             toastEl.classList.add('show');
             toastTimer = setTimeout(() => {
                 toastEl.classList.remove('show');
@@ -1410,76 +1626,33 @@
         }
 
         // ============================================================
-        //  更多菜单控制
+        //  字符插入功能
         // ============================================================
-        function openMoreMenu() {
-            moreMenuOverlay.classList.add('open');
-            document.body.style.overflow = 'hidden';
+        function insertChar(char) {
+            const textarea = qContent;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const before = textarea.value.substring(0, start);
+            const after = textarea.value.substring(end);
+            const insertText = char + ' ';
+            textarea.value = before + insertText + after;
+            const newCursor = start + insertText.length;
+            textarea.selectionStart = textarea.selectionEnd = newCursor;
+            textarea.focus();
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            debouncedAutoSave();
         }
 
-        function closeMoreMenu() {
-            moreMenuOverlay.classList.remove('open');
-            document.body.style.overflow = '';
-        }
-
-        moreBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (moreMenuOverlay.classList.contains('open')) {
-                closeMoreMenu();
-            } else {
-                openMoreMenu();
-            }
+        // 绑定字符按钮
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('#charButtons button').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const char = this.getAttribute('data-char');
+                    if (char) insertChar(char);
+                });
+            });
         });
-
-        moreMenuOverlay.addEventListener('click', (e) => {
-            if (e.target === moreMenuOverlay) {
-                closeMoreMenu();
-            }
-        });
-
-        moreMenuCancel.addEventListener('click', closeMoreMenu);
-
-        // 更多菜单中的导出/导入复用原有功能
-        moreExportBtn.addEventListener('click', () => {
-            closeMoreMenu();
-            // 延迟执行，让菜单关闭动画先完成
-            setTimeout(() => exportBtn.click(), 200);
-        });
-
-        moreImportBtn.addEventListener('click', () => {
-            closeMoreMenu();
-            setTimeout(() => importBtn.click(), 200);
-        });
-
-        // ============================================================
-        //  备份检查 & 显示
-        // ============================================================
-        async function updateBackupInfo() {
-            const lastDate = await loadMeta('lastExportDate');
-            if (lastDate) {
-                const days = Math.floor((new Date() - new Date(lastDate)) / (1000 * 60 * 60 * 24));
-                lastExportDisplay.textContent = days === 0 ? '今天' : `${days}天前`;
-                if (days >= 7) {
-                    const toastMsg = `⚠️ 建议备份数据（上次导出 ${days} 天前）`;
-                    showToast(toastMsg, true);
-                    toastEl.onclick = function() {
-                        toastEl.onclick = null;
-                        exportBtn.click();
-                    };
-                }
-            } else {
-                lastExportDisplay.textContent = '从未';
-                showToast('💡 建议导出数据以作备份', false);
-                toastEl.onclick = function() {
-                    toastEl.onclick = null;
-                    exportBtn.click();
-                };
-            }
-        }
-
-        setInterval(() => {
-            updateBackupInfo();
-        }, 24 * 60 * 60 * 1000);
 
         // ============================================================
         //  核心渲染
@@ -1598,6 +1771,8 @@
             });
 
             updateUndoRedoButtons();
+            // 更新草稿徽章状态（页面加载时）
+            updateDraftBadge();
         }
 
         function escapeHtml(text) {
@@ -1683,6 +1858,11 @@
         // ============================================================
         async function deleteQuestion(id) {
             if (isUndoRedo) return;
+            // 删除时，如果草稿对应此题目，清除草稿
+            const draft = getDraft();
+            if (draft && draft.mode === 'edit' && draft.editingId === id) {
+                clearDraft();
+            }
             pushHistory();
             questions = questions.filter(q => q.id !== id);
             await saveQuestions(questions);
@@ -1696,7 +1876,7 @@
             const title = qTitle.value.trim();
             const content = qContent.value.trim();
             if (!title || !content) {
-                showToast('请填写题目和内容');
+                showToast('请填写题目和内容', true);
                 return;
             }
             const category = qCategory.value.trim() || '未分类';
@@ -1718,7 +1898,7 @@
                     };
                     await saveQuestions(questions);
                     render();
-                    showToast('已更新');
+                    showToast('已更新 ✅', false, 'success');
                 }
             } else {
                 const newQ = {
@@ -1732,9 +1912,12 @@
                 questions.push(newQ);
                 await saveQuestions(questions);
                 render();
-                showToast('已添加 ✅');
+                showToast('已添加 ✅', false, 'success');
             }
-            resetForm();
+            // 提交成功 → 清除草稿
+            clearDraft();
+            // 关闭表单（不清除表单字段，但会被 resetForm 重置）
+            resetForm(true);
         }
 
         // ============================================================
@@ -1760,6 +1943,23 @@
         function openEditForm(id) {
             const q = questions.find(item => item.id === id);
             if (!q) return;
+
+            // 先检查是否有匹配的草稿
+            const draft = loadDraft('edit', id);
+            if (draft && isDraftValid(draft)) {
+                // 恢复草稿
+                editingId = id;
+                formTitle.textContent = '✏️ 编辑面试题';
+                applyDraftToForm(draft);
+                formSubmit.textContent = '更新';
+                formModal.classList.add('open');
+                document.body.style.overflow = 'hidden';
+                qTitle.focus();
+                showToast('📄 已恢复未保存的草稿', false, 'info');
+                return;
+            }
+
+            // 没有草稿，加载原始数据
             editingId = id;
             formTitle.textContent = '✏️ 编辑面试题';
             qTitle.value = q.title || '';
@@ -1771,9 +1971,18 @@
             formModal.classList.add('open');
             document.body.style.overflow = 'hidden';
             qTitle.focus();
+            // 清除可能存在的无效草稿
+            clearDraft();
         }
 
-        function resetForm() {
+        /**
+         * 关闭表单
+         * @param {boolean} clearDraftFlag - 是否清除草稿（true=主动取消/提交成功，false=误触退出）
+         */
+        function resetForm(clearDraftFlag = false) {
+            if (clearDraftFlag) {
+                clearDraft();
+            }
             editingId = null;
             formTitle.textContent = '✏️ 添加面试题';
             qTitle.value = '';
@@ -1784,6 +1993,44 @@
             formSubmit.textContent = '保存';
             formModal.classList.remove('open');
             document.body.style.overflow = '';
+            // 清除草稿徽章状态
+            if (clearDraftFlag) {
+                draftBadge.classList.remove('show');
+            } else {
+                // 误触退出时，更新徽章（草稿可能还在）
+                updateDraftBadge();
+            }
+        }
+
+        /** 打开添加表单（尝试恢复添加草稿） */
+        function openAddForm() {
+            // 检查是否有添加草稿
+            const draft = loadDraft('add', null);
+            if (draft && isDraftValid(draft)) {
+                editingId = null;
+                formTitle.textContent = '✏️ 添加面试题';
+                applyDraftToForm(draft);
+                formSubmit.textContent = '保存';
+                formModal.classList.add('open');
+                document.body.style.overflow = 'hidden';
+                qTitle.focus();
+                showToast('📄 已恢复未保存的草稿', false, 'info');
+                return;
+            }
+
+            // 没有草稿，打开空表单
+            editingId = null;
+            formTitle.textContent = '✏️ 添加面试题';
+            qTitle.value = '';
+            qCategory.value = '';
+            qContent.value = '';
+            qDate.value = getTodayStr();
+            qDifficulty.value = '中等';
+            formSubmit.textContent = '保存';
+            formModal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            qTitle.focus();
+            clearDraft();
         }
 
         // ============================================================
@@ -1791,7 +2038,7 @@
         // ============================================================
         async function exportData() {
             if (questions.length === 0) {
-                showToast('没有数据可导出');
+                showToast('没有数据可导出', true);
                 return;
             }
             if (!confirm('确定要导出所有数据吗？\n将导出为 JSON 文件。')) {
@@ -1807,7 +2054,7 @@
                     await navigator.share({ files: [file] });
                     await saveMeta('lastExportDate', getTodayStr());
                     updateBackupInfo();
-                    showToast('导出成功 💾');
+                    showToast('导出成功 💾', false, 'success');
                     return;
                 } catch (e) {
                     if (e.name !== 'AbortError') {
@@ -1833,7 +2080,7 @@
 
             await saveMeta('lastExportDate', getTodayStr());
             updateBackupInfo();
-            showToast('导出成功 💾');
+            showToast('导出成功 💾', false, 'success');
         }
 
         async function importData(file) {
@@ -1842,11 +2089,11 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     if (!Array.isArray(data) || data.length === 0) {
-                        showToast('无效数据文件');
+                        showToast('无效数据文件', true);
                         return;
                     }
                     if (!data[0].id || !data[0].title) {
-                        showToast('数据格式不匹配');
+                        showToast('数据格式不匹配', true);
                         return;
                     }
 
@@ -1864,18 +2111,23 @@
                         });
                         await saveQuestions(questions);
                         render();
-                        showToast(`追加了 ${added} 条，跳过重复`);
+                        showToast(`追加了 ${added} 条，跳过重复`, false, 'success');
                     } else {
                         questions = data;
                         await saveQuestions(questions);
                         render();
-                        showToast(`导入成功，共 ${data.length} 条`);
+                        showToast(`导入成功，共 ${data.length} 条`, false, 'success');
                     }
                 } catch (err) {
-                    showToast('导入失败：' + err.message);
+                    showToast('导入失败：' + err.message, true);
                 }
             };
             reader.readAsText(file);
+        }
+
+        async function updateBackupInfo() {
+            const date = await loadMeta('lastExportDate');
+            lastExportDisplay.textContent = date ? formatDate(date) : '从未';
         }
 
         // ============================================================
@@ -1887,35 +2139,46 @@
             render();
         });
 
+        // 添加按钮：打开添加表单（尝试恢复草稿）
         fabAdd.addEventListener('click', () => {
-            resetForm();
-            qDate.value = getTodayStr();
-            formModal.classList.add('open');
-            document.body.style.overflow = 'hidden';
-            qTitle.focus();
+            openAddForm();
         });
 
-        formCancel.addEventListener('click', resetForm);
+        // 取消按钮：清除草稿并关闭
+        formCancel.addEventListener('click', () => {
+            resetForm(true);
+        });
+
+        // 点击模态框外部：不清除草稿（视为误触退出）
         formModal.addEventListener('click', (e) => {
-            if (e.target === formModal) resetForm();
+            if (e.target === formModal) {
+                resetForm(false);
+            }
         });
 
+        // 表单提交
         questionForm.addEventListener('submit', handleFormSubmit);
 
+        // 表单输入变化 → 自动保存草稿（防抖）
+        [qTitle, qCategory, qContent, qDate, qDifficulty].forEach(el => {
+            el.addEventListener('input', debouncedAutoSave);
+            el.addEventListener('change', debouncedAutoSave);
+        });
+
+        // 详情关闭
         detailClose.addEventListener('click', closeDetail);
         detailOverlay.addEventListener('click', (e) => {
             if (e.target === detailOverlay) closeDetail();
         });
 
+        // 导出/导入
         exportBtn.addEventListener('click', exportData);
-
         importBtn.addEventListener('click', () => {
             if (!confirm('确定要导入数据吗？\n请选择之前导出的 JSON 文件。')) {
                 return;
             }
             importFile.click();
         });
-
         importFile.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 importData(e.target.files[0]);
@@ -1923,9 +2186,35 @@
             importFile.value = '';
         });
 
+        // 更多菜单
+        moreBtn.addEventListener('click', () => {
+            moreMenuOverlay.classList.add('open');
+        });
+        moreMenuCancel.addEventListener('click', () => {
+            moreMenuOverlay.classList.remove('open');
+        });
+        moreMenuOverlay.addEventListener('click', (e) => {
+            if (e.target === moreMenuOverlay) {
+                moreMenuOverlay.classList.remove('open');
+            }
+        });
+        moreExportBtn.addEventListener('click', () => {
+            moreMenuOverlay.classList.remove('open');
+            exportData();
+        });
+        moreImportBtn.addEventListener('click', () => {
+            moreMenuOverlay.classList.remove('open');
+            if (!confirm('确定要导入数据吗？\n请选择之前导出的 JSON 文件。')) {
+                return;
+            }
+            importFile.click();
+        });
+
+        // 撤销/重做
         document.getElementById('undoBtn').addEventListener('click', undo);
         document.getElementById('redoBtn').addEventListener('click', redo);
 
+        // 键盘快捷键
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                 e.preventDefault();
@@ -1940,9 +2229,12 @@
                 redo();
             }
             if (e.key === 'Escape') {
-                if (formModal.classList.contains('open')) resetForm();
+                if (formModal.classList.contains('open')) {
+                    // ESC 视为误触退出，不清除草稿
+                    resetForm(false);
+                }
                 if (detailOverlay.classList.contains('open')) closeDetail();
-                if (moreMenuOverlay.classList.contains('open')) closeMoreMenu();
+                if (moreMenuOverlay.classList.contains('open')) moreMenuOverlay.classList.remove('open');
             }
         });
 
@@ -1966,9 +2258,16 @@
             render();
             await updateBackupInfo();
             qDate.value = getTodayStr();
+            // 检查是否有草稿，更新徽章
+            updateDraftBadge();
 
             console.log('📝 面试题宝典已启动！');
             console.log(`当前共 ${questions.length} 道题`);
+            // 如果有草稿，在控制台提示
+            const draft = getDraft();
+            if (draft) {
+                console.log('📄 检测到未保存的草稿:', draft.mode === 'add' ? '添加模式' : `编辑 "${draft.title || '无标题'}"`);
+            }
         }
 
         init().catch(err => console.error('初始化失败', err));
@@ -1979,13 +2278,15 @@
         window.addEventListener('load', function() {
             const lottieContainer = document.getElementById('lottie-logo');
             if (lottieContainer) {
-                const anim = lottie.loadAnimation({
-                    container: lottieContainer,
-                    renderer: 'svg',
-                    loop: true,
-                    autoplay: true,
-                    path: 'lottie-logo.json'
-                });
+                try {
+                    lottie.loadAnimation({
+                        container: lottieContainer,
+                        renderer: 'svg',
+                        loop: true,
+                        autoplay: true,
+                        path: 'lottie-logo.json'
+                    });
+                } catch (_) { /* 忽略动画加载失败 */ }
             }
 
             const splash = document.getElementById('splashScreen');
