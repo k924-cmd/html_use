@@ -7,9 +7,11 @@
     <link rel="apple-touch-icon" href="your-icon.png">
     <link rel="manifest" href="manifest.json">
     <!-- 引入 Lottie 库 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js">
+    </script>
     <!-- 引入 idb 库（用于 IndexedDB） -->
-    <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.min.js">
+    </script>
     <style>
         /* ===== 全局重置 & 主题 ===== */
         * {
@@ -33,11 +35,16 @@
             --radius-sm: 10px;
             --safe-bottom: env(safe-area-inset-bottom, 16px);
             --transition: 0.25s ease;
+            --nav-height: 56px;
         }
 
+        /* ===== 页面背景 — 淡紫蓝色 + 双层径向渐变 ===== */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-            background: var(--bg);
+            background:
+                radial-gradient(circle at top left, #dbeafe, transparent 40%),
+                radial-gradient(circle at bottom right, #e0e7ff, transparent 45%),
+                #eef2ff;
             color: var(--text);
             padding-bottom: calc(80px + var(--safe-bottom));
             min-height: 100vh;
@@ -53,23 +60,27 @@
             backdrop-filter: blur(16px) saturate(180%);
             -webkit-backdrop-filter: blur(16px) saturate(180%);
             border-bottom: 1px solid var(--border);
-            padding: 14px 20px 12px;
+            padding: 10px 16px;
+            min-height: var(--nav-height);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 6px;
+            gap: 8px;
         }
 
         .app-header h1 {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             letter-spacing: -0.3px;
             display: flex;
             align-items: center;
             gap: 8px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
-        .app-header h1 span {
+
+        /* 总题数徽章（桌面端显示，手机端隐藏） */
+        .app-header h1 .count-badge {
             background: var(--primary);
             color: #fff;
             font-size: 12px;
@@ -78,75 +89,290 @@
             border-radius: 30px;
             line-height: 22px;
             letter-spacing: 0;
+            flex-shrink: 0;
+        }
+
+        /* 手机端隐藏总题数徽章 */
+        @media (max-width: 640px) {
+            .app-header h1 .count-badge {
+                display: none;
+            }
         }
 
         .header-actions {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             align-items: center;
-            flex-wrap: wrap;
+            flex-shrink: 0;
         }
-        .header-actions .text-btn {
+
+        /* ---- 通用按钮基础 ---- */
+        .header-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--transition);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            position: relative;
+            flex-shrink: 0;
+            padding: 6px 10px;
+            font-size: 14px;
+            line-height: 1.4;
+            min-height: 36px;
+            min-width: 36px;
+        }
+
+        .header-btn:hover {
+            background: rgba(79, 70, 229, 0.08);
+            color: var(--primary);
+        }
+        .header-btn:active {
+            transform: scale(0.94);
+        }
+
+        /* ---- 撤回 / 回撤 ---- */
+        .undo-redo-btn {
+            font-size: 18px;
+            padding: 6px 8px;
+            min-width: 38px;
+            border-radius: 8px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            position: relative;
+            font-family: inherit;
+            transition: all var(--transition);
+        }
+        .undo-redo-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .undo-redo-btn:not(:disabled):hover {
+            background: rgba(79, 70, 229, 0.10);
+            color: var(--primary);
+        }
+        .undo-redo-btn:not(:disabled):active {
+            transform: scale(0.92);
+        }
+
+        .undo-redo-btn .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            border-radius: 50%;
+            width: 17px;
+            height: 17px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            box-shadow: 0 1px 4px rgba(79, 70, 229, 0.30);
+        }
+
+        /* ---- 导出 / 导入（桌面端文字按钮） ---- */
+        .text-btn {
+            padding: 6px 14px;
+            border-radius: 8px;
             background: transparent;
             border: 1px solid var(--border);
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             color: var(--text-secondary);
-            padding: 4px 12px;
-            border-radius: 6px;
             cursor: pointer;
             transition: all var(--transition);
             font-family: inherit;
-            line-height: 1.6;
+            line-height: 1.5;
             background: var(--card-bg);
+            white-space: nowrap;
         }
-        .header-actions .text-btn:hover {
+        .text-btn:hover {
             background: var(--primary);
             color: #fff;
             border-color: var(--primary);
             box-shadow: 0 2px 8px rgba(79, 70, 229, 0.20);
         }
-        .header-actions .text-btn:active {
+        .text-btn:active {
             transform: scale(0.96);
         }
 
-        .undo-redo-btn {
-            font-size: 18px;
-            padding: 4px 10px;
-            border-radius: 6px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            cursor: pointer;
-            transition: all var(--transition);
-            color: var(--text-secondary);
-            line-height: 1.4;
-            position: relative;
-            font-family: inherit;
-        }
-        .undo-redo-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-        .undo-redo-btn:not(:disabled):hover {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-        .undo-redo-btn .badge {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background: var(--primary);
-            color: #fff;
-            font-size: 10px;
+        /* ---- 更多按钮（手机端显示） ---- */
+        #moreBtn {
+            font-size: 22px;
             font-weight: 600;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
+            padding: 4px 10px;
+            min-width: 38px;
+            min-height: 38px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            transition: all var(--transition);
+            font-family: inherit;
+            line-height: 1;
+            display: none;
+            /* 默认隐藏，手机端显示 */;
+        }
+        #moreBtn:hover {
+            background: rgba(79, 70, 229, 0.08);
+            color: var(--primary);
+        }
+        #moreBtn:active {
+            transform: scale(0.92);
+        }
+
+        /* 手机端显示更多按钮，隐藏导出/导入文字按钮 */
+        @media (max-width: 640px) {
+            #moreBtn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .text-btn.export-import-btn {
+                display: none;
+            }
+            .app-header h1 {
+                font-size: 17px;
+            }
+            .undo-redo-btn {
+                font-size: 17px;
+                padding: 4px 6px;
+                min-width: 34px;
+            }
+            .undo-redo-btn .badge {
+                width: 16px;
+                height: 16px;
+                font-size: 8px;
+                top: -5px;
+                right: -5px;
+            }
+        }
+
+        /* 桌面端隐藏更多按钮 */
+        @media (min-width: 641px) {
+            #moreBtn {
+                display: none !important;
+            }
+            .text-btn.export-import-btn {
+                display: inline-flex;
+            }
+        }
+
+        /* ===== 更多菜单浮层 ===== */
+        .more-menu-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background: rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .more-menu-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .more-menu-panel {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 400px;
+            border-radius: 20px 20px 0 0;
+            padding: 12px 0 calc(16px + var(--safe-bottom));
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.10);
+        }
+        .more-menu-overlay.open .more-menu-panel {
+            transform: translateY(0);
+        }
+
+        .more-menu-handle {
+            width: 40px;
+            height: 4px;
+            border-radius: 4px;
+            background: var(--border);
+            margin: 0 auto 12px;
+        }
+
+        .more-menu-item {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 14px;
+            padding: 16px 24px;
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text);
+            cursor: pointer;
+            transition: background var(--transition);
+            font-family: inherit;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .more-menu-item:last-child {
+            border-bottom: none;
+        }
+        .more-menu-item:hover {
+            background: var(--bg);
+        }
+        .more-menu-item:active {
+            background: var(--border);
+        }
+        .more-menu-item .icon {
+            font-size: 22px;
+            width: 32px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .more-menu-item .label {
+            flex: 1;
+        }
+        .more-menu-item .hint {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* 取消按钮 */
+        .more-menu-cancel {
+            margin-top: 8px;
+            padding: 16px;
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-top: 1px solid var(--border);
+            font-family: inherit;
+            transition: background var(--transition);
+        }
+        .more-menu-cancel:hover {
+            background: var(--bg);
+        }
+        .more-menu-cancel:active {
+            background: var(--border);
         }
 
         /* ===== 统计条 ===== */
@@ -677,8 +903,7 @@
                 margin: 0 auto;
             }
             .app-header {
-                padding-left: 24px;
-                padding-right: 24px;
+                padding: 12px 24px;
             }
             .modal {
                 border-radius: var(--radius);
@@ -703,13 +928,18 @@
             .modal h2 {
                 font-size: 18px;
             }
-            .header-actions .text-btn {
-                font-size: 12px;
-                padding: 3px 8px;
+            .app-header h1 {
+                font-size: 15px;
             }
             .undo-redo-btn {
                 font-size: 15px;
-                padding: 3px 8px;
+                padding: 3px 5px;
+                min-width: 30px;
+            }
+            #moreBtn {
+                font-size: 20px;
+                padding: 2px 6px;
+                min-width: 32px;
             }
         }
 
@@ -758,7 +988,10 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--bg);
+            background:
+                radial-gradient(circle at top left, #dbeafe, transparent 40%),
+                radial-gradient(circle at bottom right, #e0e7ff, transparent 45%),
+                #eef2ff;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -789,8 +1022,14 @@
             transform: translateY(20px);
         }
         @keyframes slideUp {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .splash-subtitle {
@@ -803,8 +1042,14 @@
             transform: translateY(12px);
         }
         @keyframes slideUpShort {
-            0% { opacity: 0; transform: translateY(12px); }
-            100% { opacity: 1; transform: translateY(0); }
+            0% {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -819,21 +1064,50 @@
         </div>
     </div>
 
-    <!-- ===== 顶部 ===== -->
+    <!-- ===== 顶部导航栏 ===== -->
     <header class="app-header">
-        <h1>📝 面试题宝典 <span id="countBadge">0</span></h1>
+        <h1>
+            📝 面试题宝典
+            <span class="count-badge" id="countBadge">0</span>
+        </h1>
         <div class="header-actions">
+            <!-- 撤回 -->
             <button class="undo-redo-btn" id="undoBtn" title="撤销 (Ctrl+Z)" disabled>
-                ↩️ <span class="badge" id="undoCount">0</span>
+                ↩️
+                <span class="badge" id="undoCount">0</span>
             </button>
+            <!-- 回撤 -->
             <button class="undo-redo-btn" id="redoBtn" title="重做 (Ctrl+Y)" disabled>
-                ↪️ <span class="badge" id="redoCount">0</span>
+                ↪️
+                <span class="badge" id="redoCount">0</span>
             </button>
-            <button id="exportBtn" class="text-btn" title="导出数据">导出</button>
-            <button id="importBtn" class="text-btn" title="导入数据">导入</button>
+            <!-- 导出（桌面端显示） -->
+            <button id="exportBtn" class="text-btn export-import-btn" title="导出数据">📤 导出</button>
+            <!-- 导入（桌面端显示） -->
+            <button id="importBtn" class="text-btn export-import-btn" title="导入数据">📥 导入</button>
+            <!-- 更多（手机端显示） -->
+            <button id="moreBtn" title="更多">⋯</button>
             <input type="file" id="importFile" accept=".json" style="display:none" />
         </div>
     </header>
+
+    <!-- ===== 更多菜单（手机端底部弹出） ===== -->
+    <div class="more-menu-overlay" id="moreMenuOverlay">
+        <div class="more-menu-panel">
+            <div class="more-menu-handle"></div>
+            <button class="more-menu-item" id="moreExportBtn">
+                <span class="icon">📤</span>
+                <span class="label">导出数据</span>
+                <span class="hint">备份到文件</span>
+            </button>
+            <button class="more-menu-item" id="moreImportBtn">
+                <span class="icon">📥</span>
+                <span class="label">导入数据</span>
+                <span class="hint">从文件恢复</span>
+            </button>
+            <button class="more-menu-cancel" id="moreMenuCancel">取消</button>
+        </div>
+    </div>
 
     <!-- ===== 统计 ===== -->
     <div class="stats-bar">
@@ -977,29 +1251,25 @@
         const MAX_HISTORY = 50;
         let undoStack = [];
         let redoStack = [];
-        let isUndoRedo = false; // 防止在撤销/重做过程中再次记录历史
+        let isUndoRedo = false;
 
         function pushHistory() {
             if (isUndoRedo) return;
-            // 深拷贝当前数据
             const snapshot = JSON.parse(JSON.stringify(questions));
             undoStack.push(snapshot);
             if (undoStack.length > MAX_HISTORY) {
                 undoStack.shift();
             }
-            redoStack = []; // 新操作清空重做栈
+            redoStack = [];
             updateUndoRedoButtons();
         }
 
         function undo() {
             if (undoStack.length === 0) return;
             isUndoRedo = true;
-            // 当前状态推入重做栈
             redoStack.push(JSON.parse(JSON.stringify(questions)));
-            // 恢复到撤销栈顶
             const snapshot = undoStack.pop();
             questions = snapshot;
-            // 保存到 IndexedDB 并刷新界面
             saveQuestions(questions).then(() => {
                 render();
                 updateUndoRedoButtons();
@@ -1095,6 +1365,13 @@
 
         const lastExportDisplay = $('#lastExportDisplay');
 
+        // 更多菜单相关
+        const moreMenuOverlay = $('#moreMenuOverlay');
+        const moreExportBtn = $('#moreExportBtn');
+        const moreImportBtn = $('#moreImportBtn');
+        const moreMenuCancel = $('#moreMenuCancel');
+        const moreBtn = $('#moreBtn');
+
         // ============================================================
         //  工具函数
         // ============================================================
@@ -1133,6 +1410,48 @@
         }
 
         // ============================================================
+        //  更多菜单控制
+        // ============================================================
+        function openMoreMenu() {
+            moreMenuOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMoreMenu() {
+            moreMenuOverlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        moreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (moreMenuOverlay.classList.contains('open')) {
+                closeMoreMenu();
+            } else {
+                openMoreMenu();
+            }
+        });
+
+        moreMenuOverlay.addEventListener('click', (e) => {
+            if (e.target === moreMenuOverlay) {
+                closeMoreMenu();
+            }
+        });
+
+        moreMenuCancel.addEventListener('click', closeMoreMenu);
+
+        // 更多菜单中的导出/导入复用原有功能
+        moreExportBtn.addEventListener('click', () => {
+            closeMoreMenu();
+            // 延迟执行，让菜单关闭动画先完成
+            setTimeout(() => exportBtn.click(), 200);
+        });
+
+        moreImportBtn.addEventListener('click', () => {
+            closeMoreMenu();
+            setTimeout(() => importBtn.click(), 200);
+        });
+
+        // ============================================================
         //  备份检查 & 显示
         // ============================================================
         async function updateBackupInfo() {
@@ -1140,20 +1459,16 @@
             if (lastDate) {
                 const days = Math.floor((new Date() - new Date(lastDate)) / (1000 * 60 * 60 * 24));
                 lastExportDisplay.textContent = days === 0 ? '今天' : `${days}天前`;
-                // 检查是否超过7天
                 if (days >= 7) {
-                    // 显示警告 Toast，点击触发导出
                     const toastMsg = `⚠️ 建议备份数据（上次导出 ${days} 天前）`;
                     showToast(toastMsg, true);
-                    // 为 Toast 添加点击事件（仅一次）
                     toastEl.onclick = function() {
-                        toastEl.onclick = null; // 防止重复绑定
-                        exportBtn.click(); // 触发导出（用户手势）
+                        toastEl.onclick = null;
+                        exportBtn.click();
                     };
                 }
             } else {
                 lastExportDisplay.textContent = '从未';
-                // 从未导出过，也提醒一次
                 showToast('💡 建议导出数据以作备份', false);
                 toastEl.onclick = function() {
                     toastEl.onclick = null;
@@ -1162,7 +1477,6 @@
             }
         }
 
-        // 每天检查一次
         setInterval(() => {
             updateBackupInfo();
         }, 24 * 60 * 60 * 1000);
@@ -1227,11 +1541,11 @@
                     emptyMsg = `📂 没有 "${filterValue}" 分类的题目`;
                 }
                 listEl.innerHTML = `
-                    <div class="empty-state">
-                        <span class="big-emoji">📭</span>
-                        <p>${emptyMsg}</p>
-                    </div>
-                `;
+                            <div class="empty-state">
+                                <span class="big-emoji">📭</span>
+                                <p>${emptyMsg}</p>
+                            </div>
+                        `;
                 return;
             }
 
@@ -1240,21 +1554,21 @@
                 const cat = q.category || '未分类';
                 const dateStr = formatDate(q.date);
                 return `
-                    <div class="card" data-id="${q.id}">
-                        <div class="card-header">
-                            <div class="card-title">${escapeHtml(q.title || '无标题')}</div>
-                            <span class="card-tag">${escapeHtml(cat)}</span>
-                        </div>
-                        <div class="card-preview">${escapeHtml(preview)}</div>
-                        <div class="card-footer">
-                            <span class="date">📅 ${dateStr}</span>
-                            <div class="card-actions">
-                                <button class="edit-btn" data-id="${q.id}" title="编辑">✏️</button>
-                                <button class="delete-btn" data-id="${q.id}" title="删除">🗑️</button>
+                            <div class="card" data-id="${q.id}">
+                                <div class="card-header">
+                                    <div class="card-title">${escapeHtml(q.title || '无标题')}</div>
+                                    <span class="card-tag">${escapeHtml(cat)}</span>
+                                </div>
+                                <div class="card-preview">${escapeHtml(preview)}</div>
+                                <div class="card-footer">
+                                    <span class="date">📅 ${dateStr}</span>
+                                    <div class="card-actions">
+                                        <button class="edit-btn" data-id="${q.id}" title="编辑">✏️</button>
+                                        <button class="delete-btn" data-id="${q.id}" title="删除">🗑️</button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                `;
+                        `;
             }).join('');
 
             listEl.querySelectorAll('.card').forEach(card => {
@@ -1369,7 +1683,6 @@
         // ============================================================
         async function deleteQuestion(id) {
             if (isUndoRedo) return;
-            // 记录历史
             pushHistory();
             questions = questions.filter(q => q.id !== id);
             await saveQuestions(questions);
@@ -1390,7 +1703,6 @@
             const date = qDate.value || getTodayStr();
             const difficulty = qDifficulty.value || '中等';
 
-            // 记录历史
             pushHistory();
 
             if (editingId) {
@@ -1490,7 +1802,6 @@
             const blob = new Blob([jsonStr], { type: 'application/json' });
             const file = new File([blob], `面试题_${getTodayStr()}.json`, { type: 'application/json' });
 
-            // ✅ 优先使用 Web Share API (iOS 主屏幕应用完美支持)
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({ files: [file] });
@@ -1502,22 +1813,20 @@
                     if (e.name !== 'AbortError') {
                         showToast('分享失败，尝试备用方案');
                     } else {
-                        return; // 用户主动取消，不报错
+                        return;
                     }
                 }
             }
 
-            // ⬇️ 降级方案（Android / 桌面端 / 不支持分享的浏览器）
             const fallbackUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = fallbackUrl;
             a.download = `面试题_${getTodayStr()}.json`;
-            a.target = '_blank'; // 🔑 关键修复：避免当前页面跳转到 blob 地址
+            a.target = '_blank';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
 
-            // 延迟释放，确保 iOS 有足够时间处理下载
             setTimeout(() => {
                 URL.revokeObjectURL(fallbackUrl);
             }, 5000);
@@ -1541,7 +1850,6 @@
                         return;
                     }
 
-                    // 记录历史（导入视为一次整体操作）
                     pushHistory();
 
                     if (!confirm(`将导入 ${data.length} 条题目，是否覆盖当前数据？\n（取消则追加）`)) {
@@ -1618,12 +1926,11 @@
         document.getElementById('undoBtn').addEventListener('click', undo);
         document.getElementById('redoBtn').addEventListener('click', redo);
 
-        // 键盘快捷键
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                 e.preventDefault();
                 if (e.shiftKey) {
-                    redo(); // Ctrl+Shift+Z 或 Cmd+Shift+Z 为重做
+                    redo();
                 } else {
                     undo();
                 }
@@ -1635,6 +1942,7 @@
             if (e.key === 'Escape') {
                 if (formModal.classList.contains('open')) resetForm();
                 if (detailOverlay.classList.contains('open')) closeDetail();
+                if (moreMenuOverlay.classList.contains('open')) closeMoreMenu();
             }
         });
 
@@ -1642,9 +1950,7 @@
         //  初始化
         // ============================================================
         async function init() {
-            // 加载数据
             questions = await loadQuestions();
-            // 如果数据为空，添加示例
             if (questions.length === 0) {
                 const sample = {
                     id: generateId(),
@@ -1657,18 +1963,14 @@
                 questions.push(sample);
                 await saveQuestions(questions);
             }
-            // 渲染
             render();
-            // 显示备份信息
             await updateBackupInfo();
-            // 设置默认日期
             qDate.value = getTodayStr();
 
             console.log('📝 面试题宝典已启动！');
             console.log(`当前共 ${questions.length} 道题`);
         }
 
-        // 启动应用
         init().catch(err => console.error('初始化失败', err));
 
         // ============================================================
